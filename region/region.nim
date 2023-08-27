@@ -92,7 +92,7 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
         result.add new_band(scanline, r.y2, op.merge(r.walls, no_walls))
         scanline = r.y2
         inc i
-      elif s.y1 <= r.y2 and r.y2 < s.y2:
+      elif r.y2 < s.y2:
         if scanline < s.y1:
           ## ---------------
           ## - - - - - - - - scanline
@@ -147,7 +147,7 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
         result.add new_band(scanline, s.y2, op.merge(no_walls, s.walls))
         scanline = s.y2
         inc j
-      elif r.y1 <= s.y2 and s.y2 < r.y2:
+      elif s.y2 < r.y2:
         if scanline < r.y1:
           ## ~~~~~~~~~~~~~~~
           ## - - - - - - - - scanline
