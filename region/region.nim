@@ -260,8 +260,7 @@ proc `==`*(a, b: Region): bool =
 
 iterator rects*(region: Region): Rect =
   ### Yield all rects that make up region.
-  var
-    i, height: int
+  var i, height: int
 
   for band in region:
     height = band.y2 - band.y1
