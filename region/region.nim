@@ -3,7 +3,7 @@ import std/[macros, sequtils, strformat, strutils, sugar]
 type
   Rect* = object
     x, y: int
-    width, height: Positive
+    w, h: Positive
 
   Band = object
     y1, y2: int
@@ -209,13 +209,13 @@ proc to_region*(rect: Rect): Region =
   result = @[
     Band(
       y1: rect.y,
-      y2: rect.y + rect.height,
-      walls: @[rect.x, rect.x + rect.width],
+      y2: rect.y + rect.h,
+      walls: @[rect.x, rect.x + rect.w],
     )
   ]
 
 proc `$`*(rect: Rect): string =
-  fmt"Rect(x: {rect.x}, y: {rect.y}, width: {rect.width}, height: {rect.height})"
+  fmt"Rect(x: {rect.x}, y: {rect.y}, w: {rect.w}, h: {rect.h})"
 
 proc `$`(band: Band): string =
   fmt"Band(y1: {band.y1}, y2: {band.y2}, walls: {band.walls})"
@@ -244,25 +244,25 @@ proc `==`*(a, b: Region): bool =
 
 iterator rects*(region: Region): Rect =
   ### Yield all rects that make up region.
-  var i, height: int
+  var i, h: int
 
   for band in region:
-    height = band.y2 - band.y1
+    h = band.y2 - band.y1
     i = 0
     while i < band.walls.len:
       yield Rect(
         x: band.walls[i],
         y: band.y1,
-        width: band.walls[i + 1] - band.walls[i],
-        height: height,
+        w: band.walls[i + 1] - band.walls[i],
+        h: h,
       )
       i.inc 2
 
 when isMainModule:
   let
-    r = Rect(x: 0, y: 0, width: 60, height: 60).to_region
-    s = Rect(x: 0, y: 20, width: 40, height: 20).to_region
-    t = Rect(x: 0, y: 40, width: 20, height: 20).to_region
+    r = Rect(x: 0, y: 0, w: 60, h: 60).to_region
+    s = Rect(x: 0, y: 20, w: 40, h: 20).to_region
+    t = Rect(x: 0, y: 40, w: 20, h: 20).to_region
 
   assert r == r - s + s - t + t
   echo r - s - t
