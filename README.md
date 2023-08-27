@@ -41,10 +41,10 @@ One method is to divide the area into a series of mutually exclusive horizontal 
 Each band is a vertical interval and a list of walls. Each contiguous pair of walls indicates a new rect in the band. A Region is a list of sorted, mutually exclusive bands.
 
 
-Using `region`
+Using `regions`
 --------------
 
-To use `region`, construct an initial Region, `r`, from some rect and iteratively `+`, `-`, `&`, or `^` with other regions:
+To use `regions`, construct an initial Region, `r`, from some rect and iteratively `+`, `-`, `&`, or `^` with other regions:
 ```nim
   let
     r = Rect(x: 0, y: 0, w: 60, h: 60).to_region
