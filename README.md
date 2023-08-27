@@ -1,4 +1,4 @@
-# region
+# regions
 Regions for window managers.
 
 Regions
