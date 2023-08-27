@@ -11,54 +11,42 @@ type
 
   Region* = seq[Band]
 
+let no_walls: seq[int] = @[]
+
 proc new_band(y1, y2: int, walls: seq[int]): Band =
   if y2 <= y1:
     raise newException(ValueError, fmt"Invalid Band: y1 ({y1}) is not smaller than y2 ({y2})")
   Band(y1: y1, y2: y2, walls: walls)
 
-proc merge(op: (bool, bool) -> bool; a, b: seq[int] = @[]): seq[int] =
+proc merge(op: (bool, bool) -> bool; a, b: seq[int]): seq[int] =
   ### Merge the walls of two bands given a set operation.
   var
+    i = 0
+    j = 0
+    current_a = int.high
+    current_b = int.high
+    threshold = 0
     inside_a = false
     inside_b = false
     inside_region = false
-    i = 0
-    j = 0
 
-  template update_region(threshold: int) =
+  while i < a.len or j < b.len:
+    current_a = if i < a.len: a[i] else: int.high
+    current_b = if j < b.len: b[j] else: int.high
+    threshold = min(current_a, current_b)
+
+    if current_a == threshold:
+      inside_a = not inside_a
+      inc i
+
+    if current_b == threshold:
+      inside_b = not inside_b
+      inc j
+
     if op(inside_a, inside_b) != inside_region:
       inside_region = not inside_region
       result.add threshold
 
-  template update_a =
-    inside_a = not inside_a
-    update_region a[i]
-    inc i
-
-  template update_b =
-    inside_b = not inside_b
-    update_region b[j]
-    inc j
-
-  while true:
-    if i < a.len:
-      if j < b.len:
-        if a[i] < b[j]:
-          update_a
-        elif b[j] < a[i]:
-          update_b
-        else:
-          inside_a = not inside_a
-          inside_b = not inside_b
-          update_region a[i]
-          inc i
-          inc j
-      else:
-        update_a
-    elif j < b.len:
-      update_b
-    else:
-      break
 
 proc coalesce(region: var Region) =
   ### Join contiguous bands with the same walls.
@@ -101,7 +89,7 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
         ##        ~~~~~~~~~~~~~~~
         ##               s
         ##        ~~~~~~~~~~~~~~~
-        result.add new_band(scanline, r.y2, op.merge(r.walls))
+        result.add new_band(scanline, r.y2, op.merge(r.walls, no_walls))
         scanline = r.y2
         inc i
       elif s.y1 <= r.y2 and r.y2 < s.y2:
@@ -113,8 +101,7 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
           ## ---------------
           ##               s
           ##        ~~~~~~~~~~~~~~~
-          result.add new_band(scanline, s.y1, op.merge(r.walls))
-
+          result.add new_band(scanline, s.y1, op.merge(r.walls, no_walls))
         if s.y1 < r.y2:
           ## ---------------
           ##        r
@@ -134,7 +121,7 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
           ##               s
           ##        ~~~~~~~~~~~~~~~
           ## ---------------
-          result.add new_band(scanline, s.y1, op.merge(r.walls))
+          result.add new_band(scanline, s.y1, op.merge(r.walls, no_walls))
         ## ---------------
         ##        r
         ##        ~-~-~-~-~-~-~-~ scanline
@@ -149,7 +136,7 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
     else:  # s.y1 < r.y1
       if scanline < s.y1:
         scanline = s.y1
-      if s.y2 < r.y2:
+      if s.y2 < r.y1:
         ## ~~~~~~~~~~~~~~~
         ## - - - - - - - - scanline
         ##        s
@@ -157,7 +144,7 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
         ##        _______________
         ##               r
         ##        _______________
-        result.add new_band(scanline, s.y2, op.merge(s.walls))
+        result.add new_band(scanline, s.y2, op.merge(no_walls, s.walls))
         scanline = s.y2
         inc j
       elif r.y1 <= s.y2 and s.y2 < r.y2:
@@ -169,8 +156,7 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
           ## ~~~~~~~~~~~~~~~
           ##               r
           ##        ---------------
-          result.add new_band(scanline, r.y1, op.merge(s.walls))
-
+          result.add new_band(scanline, r.y1, op.merge(no_walls, s.walls))
         if r.y1 < s.y2:
           ## ~~~~~~~~~~~~~~~
           ##        s
@@ -178,7 +164,7 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
           ## ~~~~~~~~~~~~~~~
           ##               r
           ##        ---------------
-          result.add new_band(r.y1, s.y2, op.merge(s.walls, r.walls))
+          result.add new_band(r.y1, s.y2, op.merge(r.walls, s.walls))
         scanline = s.y2
         inc j
       else:  # s.y2 >= r.y2
@@ -190,14 +176,14 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
           ##               r
           ##        ---------------
           ## ~~~~~~~~~~~~~~~
-          result.add new_band(scanline, r.y1, op.merge(s.walls))
+          result.add new_band(scanline, r.y1, op.merge(no_walls, s.walls))
         ## ~~~~~~~~~~~~~~~
         ##        s
         ##        --------------- scanline
         ##               r
         ##        ---------------
         ## ~~~~~~~~~~~~~~~
-        result.add new_band(r.y1, r.y2, op.merge(s.walls, r.walls))
+        result.add new_band(r.y1, r.y2, op.merge(r.walls, s.walls))
         scanline = r.y2
         if r.y2 == s.y2:
           inc j
@@ -206,15 +192,13 @@ proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
   while i < a.len:
     if scanline < r.y1:
       scanline = r.y1
-    result.add new_band(scanline, r.y2, op.merge(r.walls))
-    scanline = r.y2
+    result.add new_band(scanline, r.y2, op.merge(r.walls, no_walls))
     inc i
 
   while j < b.len:
     if scanline < s.y1:
       scanline = s.y1
-    result.add new_band(scanline, s.y2, op.merge(s.walls))
-    scanline = s.y2
+    result.add new_band(scanline, s.y2, op.merge(no_walls, s.walls))
     inc j
 
   coalesce result
@@ -230,7 +214,7 @@ proc to_region*(rect: Rect): Region =
     )
   ]
 
-proc `$`(rect: Rect): string =
+proc `$`*(rect: Rect): string =
   fmt"Rect(x: {rect.x}, y: {rect.y}, width: {rect.width}, height: {rect.height})"
 
 proc `$`(band: Band): string =
@@ -289,4 +273,3 @@ when isMainModule:
     discard new_band(5, 3, @[1, 2, 3])
   except ValueError as e:
     echo e.msg
-
