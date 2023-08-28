@@ -65,7 +65,7 @@ proc coalesce(region: var Region) =
     else:
       inc i
 
-proc merge(op: (bool, bool) -> bool, a, b: Region = @[]): Region =
+proc merge(op: (bool, bool) -> bool, a, b: Region): Region =
   ### Combine two regions with a given boolean operator.
   result = default(Region)
 
