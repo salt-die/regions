@@ -50,16 +50,14 @@ proc merge(op: (bool, bool) -> bool; a, b: seq[int]): seq[int] =
 
 proc coalesce(region: var Region) =
   ### Join contiguous bands with the same walls.
+  region = region.filter(band => band.walls.len > 0)
+
   var i = 0
   template r: Band = region[i]
   template s: Band = region[i + 1]
 
   while i < region.len - 1:
-    if r.walls.len == 0:
-      region.delete i
-    elif s.walls.len == 0:
-      region.delete i + 1
-    elif s.y1 <= r.y2 and r.walls == s.walls:
+    if s.y1 <= r.y2 and r.walls == s.walls:
       r.y2 = s.y2
       region.delete i + 1
     else:
